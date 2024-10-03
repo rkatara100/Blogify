@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+      <%- include('./partials/head.ejs') %>
+            <title>Sign Up</title>
+</head>
+
+<body>
+      <%- include('./partials/nav.ejs') %>
+
+            <div class="container mt-3">
+                  <% if (typeof error !=='undefined' ) { %>
+                        <div class="alert alert-danger" role="alert">
+                              <%= error %>
+                        </div>
+                        <% } %>
+                              <form method="post" action="/user/signUp">
+                                    <div class="mb-3">
+                                          <label for="name" class="form-label">Full Name</label>
+                                          <input type="text" class="form-control" id="name" name="fullName">
+                                    </div>
+                                    <div class="mb-3">
+                                          <label for="exampleInputEmail1" class="form-label">Email address</label>
+                                          <input type="email" class="form-control" id="exampleInputEmail1" name="email">
+                                    </div>
+                                    <div class="mb-3">
+                                          <label for="exampleInputPassword1" class="form-label">Password</label>
+                                          <input type="password" class="form-control" id="exampleInputPassword1"
+                                                name="password">
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">Sign Up</button>
+                              </form>
+
+            </div>
+
+            <%- include('./partials/script.ejs') %>
+</body>
+
+</html>

@@ -1,5 +1,6 @@
 const { Schema, model } = require('mongoose');
-const { randomBytes, createHmac } = require('crypto');
+const bcrypt = require('bcrypt');
+const { createTokenforUser } = require('../utils/authentication')
 
 // User Schema definition
 const UserSchema = new Schema({
@@ -13,9 +14,6 @@ const UserSchema = new Schema({
             unique: true,
             lowercase: true, // Ensures email is stored in lowercase
             trim: true // Removes whitespace from the beginning and end
-      },
-      salt: {
-            type: String,
       },
       password: {
             type: String,
@@ -32,49 +30,35 @@ const UserSchema = new Schema({
       }
 }, { timestamps: true });
 
-
-
 // Pre-save hook for hashing the password
-UserSchema.pre("save", function (next) {
+UserSchema.pre("save", async function (next) {
       const user = this;
 
       // Only hash the password if it has been modified (or is new)
       if (!this.isModified('password')) return next();
 
-      // Generate a new salt and hash the password
-      const salt = randomBytes(16).toString('hex'); // Use hex encoding
-      const hashedPassword = createHmac("sha256", salt).update(user.password).digest("hex");
-
-      // Assign the salt and hashed password to the user
-      this.salt = salt;
-      this.password = hashedPassword;
+      const salt = await bcrypt.genSalt(10);
+      this.password = await bcrypt.hash(user.password, salt);
 
       next();
 });
 
-UserSchema.static("matchPassword", async function (email, password) {
-
-      const user = await UserSchema.findOne({ email });
+// Static method for matching password and generating token
+UserSchema.static("matchPasswordAndGenerateToken", async function (email, password) {
+      const user = await this.findOne({ email });
 
       if (!user) {
-            throw new Error("something went wrong with Email or Password!");
+            throw new Error("Invalid email or password");
       }
 
-      const salt = user.salt;
-      const hashedPassword = user.password;
-
-      const userProvidehash = createHmac("sha256", salt).update(password).digest("hex");
-      if (hashedPassword !== userProvidehash) {
-            throw new Error("something went wrong with Email or Password!");
-
+      const isMatch = await bcrypt.compare(password, user.password);
+      if (!isMatch) {
+            throw new Error("Invalid email or password");
       }
 
-      return { ...user, password: undefined, salt: undefined };
-
-})
-
-
-
+      const token = createTokenforUser(user); // Ensure this function is defined elsewhere
+      return token;
+});
 
 const User = model("User", UserSchema);
 

@@ -1,6 +1,5 @@
 const { Router } = require('express');
 const User = require('../models/user');
-const { createHmac } = require('crypto');
 
 const router = Router();
 
@@ -21,15 +20,14 @@ router.post('/signUp', async (req, res) => {
             if (existingUser) {
                   return res.render("signUp", { error: "Email already in use" });
             }
-            const newUser = new User({
+            const newUser = await User.create({
                   fullName,
                   email,
                   password // password will be hashed in the pre-save hook
             });
+
             await newUser.save();
-
             res.redirect("/");
-
       } catch (error) {
             console.error('Sign up error:', error);
             res.status(500).send("Internal server error");
@@ -39,12 +37,19 @@ router.post('/signUp', async (req, res) => {
 router.post('/signIn', async (req, res) => {
       const { email, password } = req.body;
 
-      const user = await User.matchPassword(email, password);
+      try {
+            const token = await User.matchPasswordAndGenerateToken(email, password);
 
-      console.log("User: ", user);
 
-      return res.redirect('/');
-
+            return res.cookie("token", token).redirect('/'); // Redirect after successful login
+      } catch (error) {
+            console.error('Sign in error:', error);
+            return res.render("signIn", { error: "Invalid email or password" }); // Render signIn with an error message
+      }
 });
 
+
+router.get('/logout', (req, res) => {
+      return res.clearCookie("token").redirect('/');
+})
 module.exports = router;
